@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Depender
+Comment=أداة إدارة ملفات .desktop لنظام Daruza
+Exec=depender
+Icon=utilities-terminal
+Terminal=true
+Type=Application
+Categories=Utility;Development;

@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+import os
+import sys
+import argparse
+import configparser
+import glob
+import json
+import subprocess
+from pathlib import Path
+
+class Depender:
+    def __init__(self):
+        self.app_dirs = [
+            "/usr/share/applications",
+            str(Path.home() / ".local/share/applications")
+        ]
+        self.apps = []
+        self.load_apps()
+    
+    def load_apps(self):
+        """تحميل جميع ملفات .desktop من المجلدات المحددة"""
+        self.apps = []
+        for app_dir in self.app_dirs:
+            if not os.path.exists(app_dir):
+                continue
+                
+            for desktop_file in glob.glob(os.path.join(app_dir, "*.desktop")):
+                try:
+                    app = self.parse_desktop_file(desktop_file)
+                    if app:
+                        self.apps.append(app)
+                except Exception as e:
+                    print(f"تحذير: فشل تحميل {desktop_file}: {str(e)}", file=sys.stderr)
+    
+    def parse_desktop_file(self, file_path):
+        """تحليل ملف .desktop واستخراج المعلومات المهمة"""
+        config = configparser.ConfigParser(interpolation=None)
+        config.optionxform = str  # الحفاظ على حالة الأحرف
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                config.read_file(f)
+            
+            if 'Desktop Entry' not in config:
+                return None
+                
+            entry = config['Desktop Entry']
+            
+            # التحقق من أن هذا تطبيق قابل للتنفيذ
+            if entry.get('Type', '') != 'Application':
+                return None
+                
+            # التحقق من أن التطبيق لا يحتوي على NoDisplay=true
+            if entry.getboolean('NoDisplay', False):
+                return None
+                
+            # جمع المعلومات الأساسية
+            app = {
+                'name': entry.get('Name', ''),
+                'comment': entry.get('Comment', ''),
+                'exec': entry.get('Exec', ''),
+                'icon': entry.get('Icon', ''),
+                'categories': entry.get('Categories', '').split(';') if entry.get('Categories') else [],
+                'file_path': file_path
+            }
+            
+            # التعامل مع المتغيرات في حقل Exec
+            if app['exec']:
+                app['exec'] = self.expand_exec_command(app['exec'])
+                
+            return app
+        except Exception as e:
+            print(f"خطأ في تحليل {file_path}: {str(e)}", file=sys.stderr)
+            return None
+    
+    def expand_exec_command(self, command):
+        """توسيع أوامر Exec لاستبدال المتغيرات مثل %U, %F, etc."""
+        replacements = {
+            '%U': '',
+            '%F': '',
+            '%u': '',
+            '%f': '',
+            '%i': '',
+            '%c': '',
+            '%k': ''
+        }
+        
+        for key, value in replacements.items():
+            command = command.replace(key, value)
+            
+        return command
+    
+    def list_apps(self, category=None, search_query=None):
+        """عرض قائمة التطبيقات مع خيارات التصفية"""
+        filtered_apps = self.apps.copy()
+        
+        # تصفية حسب الفئة
+        if category:
+            filtered_apps = [app for app in filtered_apps if category in app['categories']]
+        
+        # تصفية حسب البحث
+        if search_query:
+            search_query = search_query.lower()
+            filtered_apps = [
+                app for app in filtered_apps
+                if search_query in app['name'].lower() or 
+                   (app['comment'] and search_query in app['comment'].lower())
+            ]
+        
+        return filtered_apps
+    
+    def get_app_info(self, app_name):
+        """عرض معلومات تفصيلية عن تطبيق"""
+        for app in self.apps:
+            if app['name'].lower() == app_name.lower():
+                return {
+                    'name': app['name'],
+                    'comment': app['comment'],
+                    'exec': app['exec'],
+                    'icon': app['icon'],
+                    'categories': app['categories'],
+                    'file_path': app['file_path']
+                }
+        return None
+    
+    def run_app(self, app_name):
+        """تشغيل تطبيق معين"""
+        for app in self.apps:
+            if app['name'].lower() == app_name.lower() and app['exec']:
+                try:
+                    subprocess.Popen(self.split_exec_command(app['exec']))
+                    return True
+                except Exception as e:
+                    print(f"فشل تشغيل التطبيق: {str(e)}", file=sys.stderr)
+                    return False
+        return False
+    
+    def split_exec_command(self, command):
+        """تقسيم أمر Exec إلى أجزاء مع التعامل مع الاقتباسات"""
+        parts = []
+        current = []
+        in_quote = None
+        escape = False
+        
+        for char in command:
+            if escape:
+                current.append(char)
+                escape = False
+            elif char == '\\':
+                escape = True
+            elif in_quote:
+                if char == in_quote:
+                    in_quote = None
+                else:
+                    current.append(char)
+            elif char in ('"', "'"):
+                in_quote = char
+            elif char.isspace():
+                if current:
+                    parts.append(''.join(current))
+                    current = []
+            else:
+                current.append(char)
+        
+        if current:
+            parts.append(''.join(current))
+            
+        return parts
+    
+    def search_apps(self, query):
+        """البحث عن تطبيقات بناءً على استعلام"""
+        return self.list_apps(search_query=query)
+
+def main():
+    parser = argparse.ArgumentParser(description='Depender - أداة إدارة ملفات .desktop لنظام Daruza')
+    subparsers = parser.add_subparsers(dest='command', help='الأوامر المتاحة')
+    
+    # الأمر list
+    list_parser = subparsers.add_parser('list', help='عرض قائمة التطبيقات')
+    list_parser.add_argument('-c', '--category', help='تصفية حسب الفئة')
+    list_parser.add_argument('-s', '--search', help='البحث عن تطبيقات')
+    list_parser.add_argument('-j', '--json', action='store_true', help='إخراج بصيغة JSON')
+    
+    # الأمر info
+    info_parser = subparsers.add_parser('info', help='عرض معلومات التطبيق')
+    info_parser.add_argument('app_name', help='اسم التطبيق')
+    
+    # الأمر run
+    run_parser = subparsers.add_parser('run', help='تشغيل تطبيق')
+    run_parser.add_argument('app_name', help='اسم التطبيق')
+    
+    # الأمر search
+    search_parser = subparsers.add_parser('search', help='البحث عن تطبيقات')
+    search_parser.add_argument('query', help='استعلام البحث')
+    search_parser.add_argument('-j', '--json', action='store_true', help='إخراج بصيغة JSON')
+    
+    args = parser.parse_args()
+    
+    depender = Depender()
+    
+    if args.command == 'list':
+        apps = depender.list_apps(category=args.category, search_query=args.search)
+        
+        if args.json:
+            print(json.dumps(apps, indent=2, ensure_ascii=False))
+        else:
+            if not apps:
+                print("لم يتم العثور على تطبيقات مطابقة.")
+                return
+            
+            print(f"{'الاسم':<30} {'الوصف':<40}")
+            print("-" * 70)
+            for app in apps:
+                name = app['name'][:27] + "..." if len(app['name']) > 30 else app['name']
+                comment = app['comment'][:37] + "..." if app['comment'] and len(app['comment']) > 40 else (app['comment'] or "")
+                print(f"{name:<30} {comment:<40}")
+    
+    elif args.command == 'info':
+        app_info = depender.get_app_info(args.app_name)
+        if not app_info:
+            print(f"لم يتم العثور على تطبيق باسم '{args.app_name}'.")
+            sys.exit(1)
+        
+        print(f"الاسم: {app_info['name']}")
+        if app_info['comment']:
+            print(f"الوصف: {app_info['comment']}")
+        print(f"الأمر: {app_info['exec']}")
+        print(f"الأيقونة: {app_info['icon']}")
+        print(f"الفئات: {', '.join(app_info['categories'])}")
+        print(f"مسار الملف: {app_info['file_path']}")
+    
+    elif args.command == 'run':
+        if not depender.run_app(args.app_name):
+            print(f"فشل تشغيل التطبيق '{args.app_name}'.")
+            sys.exit(1)
+    
+    elif args.command == 'search':
+        apps = depender.search_apps(args.query)
+        
+        if args.json:
+            print(json.dumps(apps, indent=2, ensure_ascii=False))
+        else:
+            if not apps:
+                print(f"لم يتم العثور على تطبيقات مطابقة لـ '{args.query}'.")
+                return
+            
+            print(f"{'الاسم':<30} {'الوصف':<40}")
+            print("-" * 70)
+            for app in apps:
+                name = app['name'][:27] + "..." if len(app['name']) > 30 else app['name']
+                comment = app['comment'][:37] + "..." if app['comment'] and len(app['comment']) > 40 else (app['comment'] or "")
+                print(f"{name:<30} {comment:<40}")
+    
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
