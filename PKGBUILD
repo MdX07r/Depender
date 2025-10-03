@@ -4,7 +4,7 @@ pkgver=1.0.0
 pkgrel=1
 pkgdesc="Desktop File Management Tool for Daruza"
 arch=('any')
-url="https://github.com/yourusername/depender"
+url="https://github.com/MdX07r/Depender"
 license=('GPL3')
 depends=('python')
 makedepends=('git')
@@ -12,9 +12,9 @@ install='depender.install'
 
 # Source files
 source=(
-    "depender::https://raw.githubusercontent.com/yourusername/depender/main/depender"
-    "depender.desktop::https://raw.githubusercontent.com/yourusername/depender/main/depender.desktop"
-    "README.md::https://raw.githubusercontent.com/yourusername/depender/main/README.md"
+    "depender::https://raw.githubusercontent.com/MdX07r/Depender/main/depender"
+    "depender.desktop::https://raw.githubusercontent.com/MdX07r/Depender/main/depender.desktop"
+    "README.md::https://raw.githubusercontent.com/MdX07r/Depender/main/README.md"
 )
 
 sha256sums=(
