@@ -10,7 +10,7 @@ Depender is a lightweight and powerful command-line tool designed specifically f
 
 ## Features
 
-- **Lightweight and Fast**: Built with performance in mind, Depender adheres to MCX standards (response time < 5ms).
+- **Lightweight and Fast**: Built with performance in mind.
 - **List Applications**: View all installed applications with filtering and search capabilities.
 - **Application Details**: Get detailed information about any application, including its name, description, icon, and execution command.
 - **Launch Applications**: Easily launch applications directly from the command line.
@@ -103,8 +103,8 @@ Depender is released under the **GPLv3 License**. See the (LICENSE) file for mor
 ---
 
 For further assistance or feedback, please contact us at:  
-**Email**: mydenglobal@gmail.com 
-**GitHub Repository**: [https://github.com/MdX07r/]epender](https://github.com/MdX07r/depender)
+**Email**: mydenglobal@gmail.com
+**GitHub Repository**: https://github.com/MdX07r/Depender.
 
 --- 
 
