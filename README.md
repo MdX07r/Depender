@@ -2,9 +2,9 @@ Below is the `README.md` file in English, explaining that the tool is in beta an
 
 ---
 
-# Depender - A `.desktop` File Management Tool for Daruza
+# Depender - A `.desktop` File Management Tool for Desind
 
-Depender is a lightweight and powerful command-line tool designed specifically for the **Daruza** Desktop Environment. It allows users to manage `.desktop` files efficiently and launch applications seamlessly.
+Depender is a lightweight and powerful command-line tool designed specifically for the **Desind** Desktop Environment. It allows users to manage `.desktop` files efficiently and launch applications seamlessly.
 
 ---
 
@@ -15,7 +15,7 @@ Depender is a lightweight and powerful command-line tool designed specifically f
 - **Application Details**: Get detailed information about any application, including its name, description, icon, and execution command.
 - **Launch Applications**: Easily launch applications directly from the command line.
 - **JSON Output**: Export application lists in JSON format for easy integration with other tools.
-- **Integration with Daruza**: Designed to work seamlessly with the Daruza ecosystem, including ArchStart and other system components.
+- **Integration with Desind**: Designed to work seamlessly with the Desind ecosystem, including ArchStart and other system components.
 
 ---
 
@@ -70,23 +70,11 @@ You can install Depender manually by running the installation script:
 sudo ./depender-install
 ```
 
-### Arch Linux (AUR)
-Depender is available on the Arch User Repository (AUR). You can install it using an AUR helper like `yay` or `paru`:
-```bash
-yay -S depender
-```
-
 ---
 
 ## Beta Status
 
 **Depender is currently in beta.** While it is functional and stable for basic use cases, it is still under active development. Please report any issues or bugs you encounter.
-
----
-
-## Language Support
-
-At this stage, **Depender supports only the Arabic language**. Future updates may include support for additional languages.
 
 ---
 
