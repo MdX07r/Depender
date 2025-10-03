@@ -98,14 +98,10 @@ We welcome contributions from the community! If you'd like to help improve Depen
 
 ## License
 
-Depender is released under the **GPLv3 License**. See the (LICENSE) file for more details.
+Depender is released under the **GPLv3 License**. See the LICENSE file for more details.
 
 ---
 
 For further assistance or feedback, please contact us at:  
 **Email**: mydenglobal@gmail.com
 **GitHub Repository**: https://github.com/MdX07r/Depender.
-
---- 
-
-This `README.md` file provides a clear overview of the tool, its features, and its current limitations while emphasizing its beta status and exclusive Arabic language support.
