@@ -1,24 +1,21 @@
-# Maintainer: Myden <mydenglobal@gmail.com>
+# Maintainer: Your Name <your_email@example.com>
 pkgname=depender
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="أداة إدارة ملفات .desktop لنظام Daruza"
+pkgdesc="Desktop File Management Tool for Daruza"
 arch=('any')
-url="https://github.com/اسم_المستخدم/depender"
+url="https://github.com/yourusername/depender"
 license=('GPL3')
 depends=('python')
 makedepends=('git')
 install='depender.install'
 
-# تحديد مصادر الكود
+# Source files
 source=(
-    "depender::https://raw.githubusercontent.com/اسم_المستخدم/depender/main/depender"
-    "depender.desktop::https://raw.githubusercontent.com/اسم_المستخدم/depender/main/depender.desktop"
-    "README.md::https://raw.githubusercontent.com/اسم_المستخدم/depender/main/README.md"
+    "depender::https://raw.githubusercontent.com/yourusername/depender/main/depender"
+    "depender.desktop::https://raw.githubusercontent.com/yourusername/depender/main/depender.desktop"
+    "README.md::https://raw.githubusercontent.com/yourusername/depender/main/README.md"
 )
-
-# تحقق من التوقيع (اختياري)
-# validpgpkeys=('YOUR_GPG_KEY_ID')
 
 sha256sums=(
     'SKIP'
@@ -27,18 +24,18 @@ sha256sums=(
 )
 
 package() {
-    # تثبيت ملف الأداة الرئيسي
+    # Install the main tool
     install -Dm755 "$srcdir/depender" "$pkgdir/usr/bin/depender"
     
-    # تثبيت ملف .desktop
+    # Install the desktop file
     install -Dm644 "$srcdir/depender.desktop" "$pkgdir/usr/share/applications/depender.desktop"
     
-    # إنشاء مجلد التوثيق
+    # Create documentation directory
     install -dm755 "$pkgdir/usr/share/doc/depender"
     install -m644 "$srcdir/README.md" "$pkgdir/usr/share/doc/depender/README.md"
 }
 
-# دالة لتنظيف الملفات المؤقتة
+# Function to clean up temporary files
 pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
