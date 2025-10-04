@@ -1,8 +1,8 @@
 [Desktop Entry]
 Name=Depender
-Comment=Desktop File Management Tool for Daruza
+Comment=Desktop Application Manager and Creator
 Exec=depender
-Icon=utilities-terminal
+Icon=applications-development
 Terminal=true
 Type=Application
 Categories=Utility;Development;
