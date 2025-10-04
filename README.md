@@ -31,7 +31,9 @@ sudo ./depender-install
 ### AUR (Arch Linux)
 ```bash
 yay -S depender
-# OR
+```
+or:
+```bash
 paru -S depender
 ```
 
