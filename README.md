@@ -1,236 +1,210 @@
-# Depender - Desktop Application Manager and Creator
+# 🌐 Depender - Advanced Application Manager for Desind
 
-Depender is a powerful command-line tool designed for the **Desind** ecosystem that enables users to manage desktop applications and convert websites into native desktop applications with ease. It adheres to the MCX maximum standards (response time < 5ms) while providing a seamless user experience.
+[![GitHub license](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://github.com/MdX07r/depender/blob/main/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/MdX07r/depender/pulls)
+[![Desind OS Compatible](https://img.shields.io/badge/Desind-Compatible-F1F1F1)](https://github.com/MdX07r/desind)
 
-## ✨ Features
+**Depender** is a powerful command-line tool designed for the **Desind OS** that goes beyond basic application management. It allows you to create custom applications, convert websites into desktop applications, and manage your application ecosystem with ease — all while maintaining lightning-fast performance.
 
-- **Web Application Creation**: Convert any website into a desktop application with automatic metadata extraction
-- **Native Application Management**: List, view information, and manage traditional desktop applications
-- **Automatic Metadata Extraction**: Smartly extracts titles, descriptions, and icons from websites
-- **JSON Output**: Export application lists in JSON format for programmatic use
-- **Web Application Support**: Special handling for web applications with URL tracking
-- **Lightweight & Fast**: Built for performance with response times under 5ms
-- **Seamless Desind Integration**: Works perfectly with Desind's capsule-based UI system
+## 🌟 Features
+
+- **🚀 Create Desktop Applications**: Generate `.desktop` files for any executable in seconds
+- **🌐 Web to Desktop**: Convert websites into standalone desktop applications with automatic icon detection
+- **🔍 Application Management**: List, search, and launch applications with precision filtering
+- **🎭 Browser Integration**: Automatically detect browser profiles for isolated web applications
+- **🖼️ Smart Icon Detection**: Extract favicons from websites for perfect application icons
+- **📊 JSON Output**: Export application lists for programmatic use in scripts
+- **⚡️ Lightning Fast**: Built with performance in mind (response time < 5ms)
+- **🌍 Multi-Profile Support**: Create web applications with different browser profiles
+- **🗑️ Easy Removal**: Cleanly remove applications you no longer need
 
 ## 📦 Installation
 
-### Manual Installation
+### 🐧 Linux (Manual Installation)
 ```bash
-# Download the installation script
-wget https://github.com/MdX07r/Depender/raw/main/depstall.sh
-
-# Make it executable
-chmod +x depstall.sh
-
-# Run as root
 sudo ./depstall.sh
 ```
 
-### AUR (Arch Linux)
+### 🐧 Arch Linux (AUR)
 ```bash
 yay -S depender
 ```
-or:
+
+### 💻 Windows Subsystem for Linux (WSL)
 ```bash
-paru -S depender
+git clone https://github.com/MdX07r/depender.git
+cd depender
+sudo ./depstall.sh
 ```
 
-### Dependencies
-- Python 3.8+
-- BeautifulSoup4 (`python3 -m pip install --user beautifulsoup4`)
-- Requests (`python3 -m pip install --user requests`)
+## 🚀 Basic Usage
 
-## 🚀 Getting Started
-
-### Basic Usage
+### 1. 📋 List Applications
+Display all installed applications:
 ```bash
-# List all applications
 depender list
+```
 
-# List only web applications
+Filter by category:
+```bash
+depender list -c Network
+```
+
+Search for applications:
+```bash
+depender list -s "file"
+```
+
+List only web applications:
+```bash
 depender list -w
-
-# Create a web application from a URL
-depender create-webapp https://example.com
-
-# Create a native application entry
-depender create-native "My App" "myapp-command"
-
-# View application information
-depender info "Example Website"
-
-# Run an application
-depender run "Example Website"
-
-# Remove an application
-depender remove "Example Website"
 ```
 
-## 🌐 Web Application Creation
-
-Depender's most powerful feature is converting websites into desktop applications:
-
-### Basic Web Application
+Output in JSON format:
 ```bash
-depender create-webapp https://example.com
-```
-
-This command:
-1. Fetches the website content
-2. Extracts title, description, and favicon
-3. Creates a .desktop file using `xdg-open`
-4. Marks it as a web application with `X-WebApp=true`
-5. Stores the original URL in `X-URL`
-
-### Advanced Web Application Options
-```bash
-# Custom name
-depender create-webapp https://example.com -n "My Custom Name"
-
-# Custom categories
-depender create-webapp https://example.com -c "Network;WebBrowser;"
-
-# Custom icon URL
-depender create-webapp https://example.com -i https://example.com/custom-icon.png
-
-# Create with specific browser
-depender create-webapp https://example.com --exec "firefox --private-window %U"
-```
-
-## 🖥️ Native Application Management
-
-### Creating Native Applications
-```bash
-# Basic native application
-depender create-native "VS Code" "code"
-
-# With description and icon
-depender create-native "VS Code" "code" -d "Code editing. Redefined." -i /usr/share/icons/vscode.png
-```
-
-### Managing Applications
-```bash
-# List applications with search
-depender list -s "browser"
-
-# List applications in JSON format
 depender list -j
-
-# View detailed application information
-depender info "Google Chrome"
-
-# Remove an application
-depender remove "Google Chrome"
 ```
 
-## ⚙️ Integration with Desind
-
-Depender works seamlessly with Desind's unique capsule-based UI:
-
-### Capsule Integration
-- Web applications appear as capsules in the Desind interface
-- Automatic categorization based on website content
-- Supports Desind's dynamic color engine (Pywal integration)
-- Works with Desind's RTL/LTR language support
-
-## 🔍 Advanced Usage
-
-### Batch Operations
+### 2. ℹ️ View Application Information
+Get detailed information about a specific application:
 ```bash
-# Create multiple web applications from a list
-cat websites.txt | while read url; do
-  depender create-webapp "$url"
-done
-
-# Export all web applications to JSON
-depender list -w -j > webapps.json
+depender info "Firefox"
 ```
 
-### Programmatic Use
+### 3. ▶️ Launch an Application
+Run a specific application:
 ```bash
-# Get application path for scripting
-APP_PATH=$(depender info "Example" | grep "File Path" | cut -d ':' -f 2 | tr -d ' ')
-xdg-open "$APP_PATH"
+depender run "Firefox"
 ```
 
-### Custom Browser Profiles
+### 4. 🔍 Search for Applications
+Search for applications based on a query:
 ```bash
-# Create web app with custom browser profile
-depender create-webapp https://gmail.com -n "Gmail" \
-  --exec "firefox -P 'Work' --class Gmail --no-remote %U"
+depender search "browser"
 ```
+
+## 🌈 Advanced Features
+
+### 1. 🌐 Create a Web Application
+Convert a website into a desktop application:
+```bash
+depender create web -u https://web.whatsapp.com -n "WhatsApp Web"
+```
+
+Depender will:
+- 📝 Fetch the website title as the application name
+- 🖼️ Extract the favicon for the application icon
+- 📁 Create a proper `.desktop` file in your local applications directory
+- 🧪 Isolate the application in its own browser profile
+
+### 2. 🛠️ Create a Custom Application
+Create a desktop entry for any command:
+```bash
+depender create app -n "My App" -e "/path/to/executable" -c "My custom application" -i "my-icon"
+```
+
+### 3. 🗑️ Remove an Application
+Remove an application by name:
+```bash
+depender remove "WhatsApp Web"
+```
+
+### 4. 🌐 Set Default Browser
+Configure which browser to use for web applications:
+```bash
+depender set-default browser firefox
+```
+
+## 💡 Web Application Features
+
+When creating web applications, Depender provides several advanced features:
+
+- **🔖 Automatic Title Detection**: Uses the website's `<title>` tag as the application name
+- **🖼️ Smart Icon Detection**: Finds and downloads the website's favicon (with fallbacks)
+- **🧪 Browser Profile Detection**: Creates isolated applications using separate browser profiles
+- **🏷️ Custom Categories**: Assign applications to specific categories (Network, Utility, etc.)
+- **🔄 Session Management**: Web apps maintain their own sessions separate from your main browser
+
+## 🔗 Integration with Desind OS
+
+Depender is designed to work seamlessly with the Desind ecosystem:
+
+### With ArchStart Launcher
+```bash
+depender list -j | jq -r '.[] | "<item label=\"\(.name)\" icon=\"\(.icon)\"><action name=\"Execute\"><command>depender run \"\(.name)\"</command></action></item>"' > archstart-menu.xml
+```
+
+### 🌐 Create Web Applications from Browser
+Add this bookmarklet to your browser for one-click web app creation:
+```javascript
+javascript:(function(){const url=encodeURIComponent(location.href);const name=encodeURIComponent(document.title);window.location.href='depender://create-web?url='+url+'&name='+name;})();
+```
+
+### 🧩 System Integration
+Web applications created with Depender:
+- ✅ Appear in your application menu
+- ✅ Have their own window decorations
+- ✅ Can be pinned to the taskbar
+- ✅ Support notifications
+- ✅ Integrate with system search
+
+## ⚙️ Performance Considerations
+
+- **⏱️ Response Time**: All commands respond in under 5ms, adhering to MCX maximum standards
+- **🧠 Efficient Parsing**: Only necessary fields from `.desktop` files are parsed
+- **💾 Caching**: Results are cached for subsequent queries
+- **⚙️ Background Processing**: Long operations (like web scraping) are handled efficiently
+- **🔋 Resource Friendly**: Uses minimal system resources even during intensive operations
 
 ## 🛠️ Troubleshooting
 
-### Common Issues
+### 🌐 Web Application Not Working
+If a web application doesn't launch properly:
+1. Check if your default browser is set correctly: `depender set-default browser firefox`
+2. Verify the URL is accessible
+3. Try creating the application with a specific name: `depender create web -u https://example.com -n "Example"`
 
-**Website Metadata Not Extracted Properly**
+### 🔧 Missing Dependencies
+If you encounter errors about missing modules:
 ```bash
-# Manually specify name and icon
-depender create-webapp https://problem-site.com -n "Custom Name" -i https://problem-site.com/custom-icon.png
+pip install beautifulsoup4 requests
 ```
 
-**Application Not Appearing in Launcher**
-```bash
-# Update desktop database
-update-desktop-database ~/.local/share/applications
-```
+### 🔄 Application Not Appearing in Menu
+If your application doesn't appear in the menu:
+1. Run `gtk-update-icon-cache` to refresh the icon cache
+2. Log out and back in, or restart the system
 
-**Missing Dependencies**
-```bash
-# Install required Python packages
-python3 -m pip install --user beautifulsoup4 requests
-```
+## 🌱 Contributing
 
-### Debug Mode
-```bash
-# Run with debug output
-DEP_DEBUG=1 depender create-webapp https://example.com
-```
+We welcome contributions! 🙌 Please feel free to submit pull requests or open issues on our GitHub repository.
 
-## 🤝 Contributing
-
-We welcome contributions to Depender! Here's how you can help:
-
-1. **Report bugs** by opening an issue on GitHub
-2. **Request features** by creating a feature request issue
-3. **Submit pull requests** for bug fixes or new features
-4. **Improve documentation** by updating the README or adding examples
-
-### Development Setup
-```bash
-# Clone the repository
-git clone https://github.com/MdX07r/depender.git
-cd depender
-
-# Install development dependencies
-python3 -m pip install --user -r requirements-dev.txt
-
-# Run tests
-pytest
-```
+### How to Contribute:
+1. 🍴 Fork the repository
+2. 🌿 Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. 💾 Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 Push to the branch (`git push origin feature/AmazingFeature`)
+5. 📥 Open a Pull Request
 
 ## 📜 License
 
-Depender is released under the **GNU General Public License v3.0**.
+Depender is released under the **GPLv3 License**. See the [LICENSE](LICENSE) file for more details.
 
-```
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+---
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+> "The best applications are the ones you don't have to think about installing." — *Depender Philosophy*
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
+---
 
-## 📬 Support
+⭐️ **Star us on GitHub** — It helps! [![GitHub stars](https://img.shields.io/github/stars/MdX07r/depender?style=social)](https://github.com/MdX07r/depender)
 
-For support and inquiries, please contact us:
+## 📬 Contact
 
+For support or questions, please open an issue on GitHub or contact me directly:
+
+- **GitHub**: [@MdX07r](https://github.com/MdX07r)
 - **Email**: mydenglobal@gmail.com
+
+---
+
+Made with ❤️ for the Desind OS community. All contributions are welcome!
