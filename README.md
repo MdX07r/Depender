@@ -17,13 +17,13 @@ Depender is a powerful command-line tool designed for the **Desind** ecosystem t
 ### Manual Installation
 ```bash
 # Download the installation script
-wget https://github.com/MdX07r/depender/raw/main/depender-install
+wget https://github.com/MdX07r/Depender/raw/main/depender-install
 
 # Make it executable
-chmod +x depender-install
+chmod +x depstall.sh
 
 # Run as root
-sudo ./depender-install
+sudo ./depstall.sh
 ```
 
 ### AUR (Arch Linux)
