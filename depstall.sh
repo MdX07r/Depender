@@ -1,24 +1,13 @@
 #!/bin/bash
 
 # Install Depender
-echo "Installing Depender - Desktop Application Manager and Creator"
+echo "Installing Depender - Advanced Application Manager for Desind OS"
 
 # Check for root privileges
 if [ "$(id -u)" != "0" ]; then
     echo "Please run this script with root privileges"
     exit 1
 fi
-
-# Dependencies
-echo "Checking dependencies..."
-if ! command -v python3 &> /dev/null; then
-    echo "Python 3 is required but not installed. Please install Python 3 first."
-    exit 1
-fi
-
-# Install required Python packages
-echo "Installing required Python packages..."
-python3 -m pip install --user beautifulsoup4 requests
 
 # File paths
 DEPENDER_BIN="/usr/bin/depender"
@@ -39,15 +28,11 @@ import configparser
 import glob
 import json
 import subprocess
-import requests
-from bs4 import BeautifulSoup
-from pathlib import Path
-from urllib.parse import urlparse
 import re
-import mimetypes
-import tempfile
-import shutil
-import time
+import urllib.parse
+import requests
+from pathlib import Path
+from bs4 import BeautifulSoup
 
 class Depender:
     def __init__(self):
@@ -57,15 +42,7 @@ class Depender:
         ]
         self.apps = []
         self.load_apps()
-        self.temp_dir = tempfile.mkdtemp()
-    
-    def __del__(self):
-        """Clean up temporary directory when object is destroyed"""
-        try:
-            if os.path.exists(self.temp_dir):
-                shutil.rmtree(self.temp_dir)
-        except Exception as e:
-            print(f"Warning: Failed to clean up temporary directory: {str(e)}", file=sys.stderr)
+        self.browser_profiles = self.detect_browser_profiles()
     
     def load_apps(self):
         """Load all .desktop files from specified directories"""
@@ -112,7 +89,8 @@ class Depender:
                 'icon': entry.get('Icon', ''),
                 'categories': entry.get('Categories', '').split(';') if entry.get('Categories') else [],
                 'file_path': file_path,
-                'is_webapp': 'X-WebApp' in entry
+                'is_web_app': entry.get('X-WebApp', 'false').lower() == 'true',
+                'url': entry.get('X-WebApp-URL', '')
             }
             
             # Handle variables in Exec field
@@ -189,7 +167,7 @@ class Depender:
             
         return command
     
-    def list_apps(self, category=None, search_query=None, is_webapp=None):
+    def list_apps(self, category=None, search_query=None, web_only=False):
         """List applications with filtering options"""
         filtered_apps = self.apps.copy()
         
@@ -206,11 +184,23 @@ class Depender:
                    (app['comment'] and search_query in app['comment'].lower())
             ]
         
-        # Filter by webapp
-        if is_webapp is not None:
-            filtered_apps = [app for app in filtered_apps if app['is_webapp'] == is_webapp]
+        # Filter web apps
+        if web_only:
+            filtered_apps = [app for app in filtered_apps if app.get('is_web_app', False)]
         
-        return filtered_apps
+        # Return results
+        results = []
+        for app in filtered_apps:
+            results.append({
+                'name': app['name'],
+                'comment': app['comment'],
+                'icon': app['icon'],
+                'exec': app['exec'],
+                'is_web_app': app.get('is_web_app', False),
+                'url': app.get('url', '')
+            })
+        
+        return results
     
     def get_app_info(self, app_name):
         """Get detailed information about an application"""
@@ -223,7 +213,8 @@ class Depender:
                     'icon': app['icon'],
                     'categories': app['categories'],
                     'file_path': app['file_path'],
-                    'is_webapp': app['is_webapp']
+                    'is_web_app': app.get('is_web_app', False),
+                    'url': app.get('url', '')
                 }
         return None
     
@@ -279,163 +270,194 @@ class Depender:
         """Search for applications based on a query"""
         return self.list_apps(search_query=query)
     
-    def create_webapp(self, url, name=None, categories=None, icon_url=None):
+    def detect_browser_profiles(self):
+        """Detect available browser profiles for web apps"""
+        profiles = []
+        
+        # Check Firefox profiles
+        firefox_path = Path.home() / ".mozilla/firefox"
+        if firefox_path.exists():
+            for profile in firefox_path.glob("*.default*"):
+                profiles.append({
+                    'name': 'Firefox',
+                    'profile': profile.name,
+                    'path': str(profile),
+                    'command': 'firefox --profile "{}"'
+                })
+        
+        # Check Chrome profiles
+        chrome_path = Path.home() / ".config/google-chrome"
+        if chrome_path.exists():
+            for profile in chrome_path.glob("Profile *"):
+                profiles.append({
+                    'name': 'Chrome',
+                    'profile': profile.name,
+                    'path': str(profile),
+                    'command': 'google-chrome --profile-directory="{}"'
+                })
+        
+        # Check Chromium profiles
+        chromium_path = Path.home() / ".config/chromium"
+        if chromium_path.exists():
+            for profile in chromium_path.glob("Profile *"):
+                profiles.append({
+                    'name': 'Chromium',
+                    'profile': profile.name,
+                    'path': str(profile),
+                    'command': 'chromium --profile-directory="{}"'
+                })
+        
+        return profiles
+    
+    def create_web_app(self, url, name=None, icon=None, category="Network"):
         """Create a web application from a URL"""
         try:
             # Validate URL
-            parsed_url = urlparse(url)
-            if not parsed_url.scheme or not parsed_url.netloc:
-                raise ValueError("Invalid URL format. Please provide a complete URL (e.g., https://example.com)")
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url
             
-            # Fetch website content
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            
-            # Parse HTML
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Extract title if not provided
-            if not name:
-                title_tag = soup.title
-                name = title_tag.string.strip() if title_tag and title_tag.string else parsed_url.netloc
-            
-            # Extract description
-            description = ""
-            meta_desc = soup.find('meta', attrs={'name': 'description'})
-            if meta_desc and meta_desc.get('content'):
-                description = meta_desc['content'].strip()
-            
-            # Extract icon if not provided
-            icon_path = ""
-            if icon_url:
-                icon_path = self.download_icon(icon_url)
-            else:
-                # Try to find favicon
-                favicon = None
-                # Look for link with rel="icon" or rel="shortcut icon"
-                for rel_value in ['icon', 'shortcut icon', 'apple-touch-icon']:
-                    favicon = soup.find('link', rel=rel_value)
+            # Get website information if name/icon not provided
+            if not name or not icon:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Get title as name if not provided
+                if not name:
+                    title = soup.title.string if soup.title else url.split('//')[1].split('/')[0]
+                    name = title.strip() if title else url
+                
+                # Get icon if not provided
+                if not icon:
+                    # Look for favicon in link tags
+                    favicon = None
+                    for link in soup.find_all('link', rel=re.compile(r'(icon|shortcut icon)', re.I)):
+                        href = link.get('href')
+                        if href:
+                            if href.startswith('http'):
+                                favicon = href
+                            elif href.startswith('//'):
+                                favicon = 'https:' + href
+                            elif href.startswith('/'):
+                                favicon = url.split('://')[0] + '://' + url.split('://')[1].split('/')[0] + href
+                            else:
+                                favicon = url.rstrip('/') + '/' + href
+                            break
+                    
+                    # If no favicon found, use a default
                     if favicon:
-                        break
-                
-                if favicon and favicon.get('href'):
-                    icon_url = favicon['href']
-                    # Make absolute URL if necessary
-                    if not urlparse(icon_url).netloc:
-                        icon_url = f"{parsed_url.scheme}://{parsed_url.netloc}{icon_url}"
-                    icon_path = self.download_icon(icon_url)
+                        try:
+                            # Download the icon
+                            icon_data = requests.get(favicon, timeout=5).content
+                            icon_path = Path.home() / f".local/share/icons/{name.lower().replace(' ', '-')}.png"
+                            icon_path.parent.mkdir(parents=True, exist_ok=True)
+                            
+                            with open(icon_path, 'wb') as f:
+                                f.write(icon_data)
+                            
+                            icon = str(icon_path)
+                        except:
+                            icon = 'web-browser'
+                    else:
+                        icon = 'web-browser'
             
-            # If no icon found, use default
-            if not icon_path:
-                icon_path = "applications-internet"
+            # Generate a safe filename
+            filename = f"{name.lower().replace(' ', '-')}.desktop"
+            desktop_file = Path.home() / f".local/share/applications/{filename}"
             
-            # Determine categories
-            if not categories:
-                # Default categories for web apps
-                categories = ["Network;WebBrowser;"]
-            elif not categories.endswith(';'):
-                categories += ';'
-            
-            # Create desktop file content
-            desktop_content = f"""[Desktop Entry]
-Name={name}
-Comment={description}
-Exec=xdg-open {url}
-Icon={icon_path}
-Terminal=false
-Type=Application
-Categories={categories}
-X-WebApp=true
-X-URL={url}
-"""
-            
-            # Save desktop file
-            desktop_filename = f"webapp-{re.sub(r'[^a-zA-Z0-9]', '_', name.lower())}.desktop"
-            desktop_path = os.path.join(Path.home() / ".local/share/applications", desktop_filename)
-            
-            with open(desktop_path, 'w', encoding='utf-8') as f:
-                f.write(desktop_content)
+            # Create the desktop file
+            with open(desktop_file, 'w') as f:
+                f.write("[Desktop Entry]\n")
+                f.write(f"Name={name}\n")
+                f.write(f"Comment=Web application for {url}\n")
+                f.write(f"Exec={self.get_browser_command(url)}\n")
+                f.write(f"Icon={icon}\n")
+                f.write("Terminal=false\n")
+                f.write("Type=Application\n")
+                f.write(f"Categories={category};\n")
+                f.write("StartupWMClass=web-app\n")
+                f.write(f"X-WebApp=true\n")
+                f.write(f"X-WebApp-URL={url}\n")
             
             # Reload applications
             self.load_apps()
-            
-            print(f"Web application created successfully: {desktop_path}")
-            return {
-                'name': name,
-                'path': desktop_path,
-                'url': url
-            }
+            return True, f"Web application '{name}' created successfully at {desktop_file}"
             
         except Exception as e:
-            print(f"Failed to create web application: {str(e)}", file=sys.stderr)
-            return None
+            return False, f"Failed to create web application: {str(e)}"
     
-    def download_icon(self, icon_url):
-        """Download an icon from a URL and save it locally"""
-        try:
-            response = requests.get(icon_url, timeout=5)
-            response.raise_for_status()
-            
-            # Determine file extension from content type
-            content_type = response.headers.get('Content-Type', '')
-            ext = mimetypes.guess_extension(content_type.split(';')[0]) or '.png'
-            
-            # Create a temporary file
-            icon_path = os.path.join(self.temp_dir, f"icon{ext}")
-            
-            with open(icon_path, 'wb') as f:
-                f.write(response.content)
-            
-            return icon_path
-        except Exception as e:
-            print(f"Warning: Failed to download icon: {str(e)}", file=sys.stderr)
-            return ""
+    def get_browser_command(self, url):
+        """Get the appropriate browser command based on available browsers"""
+        # Check for preferred browser in config
+        config_path = Path.home() / ".config/depender/config"
+        if config_path.exists():
+            with open(config_path, 'r') as f:
+                for line in f:
+                    if line.startswith('browser='):
+                        browser = line.split('=')[1].strip()
+                        if browser == 'firefox':
+                            return f"firefox '{url}'"
+                        elif browser == 'chrome':
+                            return f"google-chrome '{url}'"
+                        elif browser == 'chromium':
+                            return f"chromium '{url}'"
+        
+        # Detect available browsers
+        browsers = [
+            ('firefox', 'firefox'),
+            ('google-chrome', 'google-chrome'),
+            ('chromium', 'chromium')
+        ]
+        
+        for cmd, browser in browsers:
+            if self.is_command_available(cmd):
+                if browser == 'firefox':
+                    return f"firefox '{url}'"
+                elif browser == 'chrome':
+                    return f"google-chrome '{url}'"
+                elif browser == 'chromium':
+                    return f"chromium '{url}'"
+        
+        # Default to xdg-open if no browser found
+        return f"xdg-open '{url}'"
     
-    def create_native_app(self, app_name, exec_command, categories=None, icon_path=None, comment=""):
-        """Create a native application entry"""
+    def is_command_available(self, command):
+        """Check if a command is available in PATH"""
         try:
-            # Determine categories
-            if not categories:
-                categories = "Utility;"
-            elif not categories.endswith(';'):
-                categories += ';'
+            subprocess.run(['which', command], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+    
+    def create_application(self, name, exec_cmd, icon=None, comment=None, category="Utility"):
+        """Create a new application .desktop file"""
+        try:
+            # Generate a safe filename
+            filename = f"{name.lower().replace(' ', '-')}.desktop"
+            desktop_file = Path.home() / f".local/share/applications/{filename}"
             
-            # Create desktop file content
-            desktop_content = f"""[Desktop Entry]
-Name={app_name}
-Comment={comment}
-Exec={exec_command}
-"""
-            if icon_path:
-                desktop_content += f"Icon={icon_path}\n"
-                
-            desktop_content += f"""Terminal=false
-Type=Application
-Categories={categories}
-"""
-            
-            # Save desktop file
-            desktop_filename = f"{re.sub(r'[^a-zA-Z0-9]', '_', app_name.lower())}.desktop"
-            desktop_path = os.path.join(Path.home() / ".local/share/applications", desktop_filename)
-            
-            with open(desktop_path, 'w', encoding='utf-8') as f:
-                f.write(desktop_content)
+            # Create the desktop file
+            with open(desktop_file, 'w') as f:
+                f.write("[Desktop Entry]\n")
+                f.write(f"Name={name}\n")
+                if comment:
+                    f.write(f"Comment={comment}\n")
+                f.write(f"Exec={exec_cmd}\n")
+                if icon:
+                    f.write(f"Icon={icon}\n")
+                else:
+                    f.write("Icon=application-x-executable\n")
+                f.write("Terminal=false\n")
+                f.write("Type=Application\n")
+                f.write(f"Categories={category};\n")
             
             # Reload applications
             self.load_apps()
-            
-            print(f"Native application created successfully: {desktop_path}")
-            return {
-                'name': app_name,
-                'path': desktop_path
-            }
+            return True, f"Application '{name}' created successfully at {desktop_file}"
             
         except Exception as e:
-            print(f"Failed to create native application: {str(e)}", file=sys.stderr)
-            return None
+            return False, f"Failed to create application: {str(e)}"
     
     def remove_app(self, app_name):
         """Remove an application by name"""
@@ -444,23 +466,33 @@ Categories={categories}
                 try:
                     os.remove(app['file_path'])
                     self.load_apps()
-                    print(f"Application '{app_name}' removed successfully")
-                    return True
+                    return True, f"Application '{app_name}' removed successfully"
                 except Exception as e:
-                    print(f"Failed to remove application: {str(e)}", file=sys.stderr)
-                    return False
-        print(f"Application '{app_name}' not found")
-        return False
+                    return False, f"Failed to remove application: {str(e)}"
+        
+        return False, f"Application '{app_name}' not found"
+    
+    def set_default_browser(self, browser):
+        """Set the default browser for web applications"""
+        config_dir = Path.home() / ".config/depender"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        
+        config_path = config_dir / "config"
+        
+        with open(config_path, 'w') as f:
+            f.write(f"browser={browser}\n")
+        
+        return True, f"Default browser set to {browser}"
 
 def main():
-    parser = argparse.ArgumentParser(description='Depender - Desktop Application Manager and Creator')
+    parser = argparse.ArgumentParser(description='Depender - Advanced Application Manager for Desind OS')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
     # list command
     list_parser = subparsers.add_parser('list', help='List all applications')
     list_parser.add_argument('-c', '--category', help='Filter by category')
     list_parser.add_argument('-s', '--search', help='Search applications')
-    list_parser.add_argument('-w', '--webapps', action='store_true', help='Show only web applications')
+    list_parser.add_argument('-w', '--web', action='store_true', help='List only web applications')
     list_parser.add_argument('-j', '--json', action='store_true', help='Output in JSON format')
     
     # info command
@@ -476,32 +508,43 @@ def main():
     search_parser.add_argument('query', help='Search query')
     search_parser.add_argument('-j', '--json', action='store_true', help='Output in JSON format')
     
-    # create-webapp command
-    create_webapp_parser = subparsers.add_parser('create-webapp', help='Create a web application from a URL')
-    create_webapp_parser.add_argument('url', help='Website URL')
-    create_webapp_parser.add_argument('-n', '--name', help='Application name (optional)')
-    create_webapp_parser.add_argument('-c', '--categories', help='Application categories (optional, default: Network;WebBrowser;)')
-    create_webapp_parser.add_argument('-i', '--icon', help='Custom icon URL (optional)')
+    # create command
+    create_parser = subparsers.add_parser('create', help='Create a new application')
+    create_subparsers = create_parser.add_subparsers(dest='create_type', help='Type of application to create')
     
-    # create-native command
-    create_native_parser = subparsers.add_parser('create-native', help='Create a native application entry')
-    create_native_parser.add_argument('name', help='Application name')
-    create_native_parser.add_argument('exec', help='Execution command')
-    create_native_parser.add_argument('-c', '--categories', help='Application categories (optional, default: Utility;)')
-    create_native_parser.add_argument('-i', '--icon', help='Icon path or name (optional)')
-    create_native_parser.add_argument('-d', '--description', help='Application description (optional)')
+    # create app command
+    app_parser = create_subparsers.add_parser('app', help='Create a regular application')
+    app_parser.add_argument('-n', '--name', required=True, help='Application name')
+    app_parser.add_argument('-e', '--exec', required=True, help='Execution command')
+    app_parser.add_argument('-i', '--icon', help='Icon path or name')
+    app_parser.add_argument('-c', '--comment', help='Application description')
+    app_parser.add_argument('-g', '--category', default='Utility', help='Application category')
+    
+    # create web command
+    web_parser = create_subparsers.add_parser('web', help='Create a web application from a URL')
+    web_parser.add_argument('-u', '--url', required=True, help='Website URL')
+    web_parser.add_argument('-n', '--name', help='Application name (optional)')
+    web_parser.add_argument('-i', '--icon', help='Icon path or name (optional)')
+    web_parser.add_argument('-g', '--category', default='Network', help='Application category')
     
     # remove command
     remove_parser = subparsers.add_parser('remove', help='Remove an application')
     remove_parser.add_argument('app_name', help='Application name to remove')
+    
+    # set-default command
+    set_default_parser = subparsers.add_parser('set-default', help='Set default settings')
+    set_default_subparsers = set_default_parser.add_subparsers(dest='setting', help='Setting to configure')
+    
+    # set-default browser command
+    browser_parser = set_default_subparsers.add_parser('browser', help='Set default browser')
+    browser_parser.add_argument('browser', choices=['firefox', 'chrome', 'chromium'], help='Browser to use')
     
     args = parser.parse_args()
     
     depender = Depender()
     
     if args.command == 'list':
-        is_webapp = args.webapps if args.webapps else None
-        apps = depender.list_apps(category=args.category, search_query=args.search, is_webapp=is_webapp)
+        apps = depender.list_apps(category=args.category, search_query=args.search, web_only=args.web)
         
         if args.json:
             print(json.dumps(apps, indent=2, ensure_ascii=False))
@@ -530,10 +573,9 @@ def main():
         print(f"Icon: {app_info['icon']}")
         print(f"Categories: {', '.join(app_info['categories'])}")
         print(f"File Path: {app_info['file_path']}")
-        if app_info['is_webapp']:
-            print("Type: Web Application")
-        else:
-            print("Type: Native Application")
+        if app_info.get('is_web_app', False):
+            print(f"Web Application: Yes")
+            print(f"URL: {app_info.get('url', '')}")
     
     elif args.command == 'run':
         if not depender.run_app(args.app_name):
@@ -557,30 +599,50 @@ def main():
                 comment = app['comment'][:37] + "..." if app['comment'] and len(app['comment']) > 40 else (app['comment'] or "")
                 print(f"{name:<30} {comment:<40}")
     
-    elif args.command == 'create-webapp':
-        result = depender.create_webapp(
-            url=args.url,
-            name=args.name,
-            categories=args.categories,
-            icon_url=args.icon
-        )
-        if not result:
-            sys.exit(1)
-    
-    elif args.command == 'create-native':
-        result = depender.create_native_app(
-            app_name=args.name,
-            exec_command=args.exec,
-            categories=args.categories,
-            icon_path=args.icon,
-            comment=args.description
-        )
-        if not result:
-            sys.exit(1)
+    elif args.command == 'create':
+        if args.create_type == 'app':
+            success, message = depender.create_application(
+                args.name,
+                args.exec,
+                args.icon,
+                args.comment,
+                args.category
+            )
+            if success:
+                print(message)
+            else:
+                print(f"Error: {message}")
+                sys.exit(1)
+        
+        elif args.create_type == 'web':
+            success, message = depender.create_web_app(
+                args.url,
+                args.name,
+                args.icon,
+                args.category
+            )
+            if success:
+                print(message)
+            else:
+                print(f"Error: {message}")
+                sys.exit(1)
     
     elif args.command == 'remove':
-        if not depender.remove_app(args.app_name):
+        success, message = depender.remove_app(args.app_name)
+        if success:
+            print(message)
+        else:
+            print(f"Error: {message}")
             sys.exit(1)
+    
+    elif args.command == 'set-default':
+        if args.setting == 'browser':
+            success, message = depender.set_default_browser(args.browser)
+            if success:
+                print(message)
+            else:
+                print(f"Error: {message}")
+                sys.exit(1)
     
     else:
         parser.print_help()
@@ -594,268 +656,10 @@ EOF
 cat > "${DEPENDER_DESKTOP}" << 'EOF'
 [Desktop Entry]
 Name=Depender
-Comment=Desktop Application Manager and Creator
+Comment=Advanced Application Manager for Desind OS
 Exec=depender
-Icon=applications-development
+Icon=system-software-install
 Terminal=true
 Type=Application
-Categories=Utility;Development;
+Categories=Utility;Development;System;
 EOF
-
-# Create documentation directory
-mkdir -p "${DEPENDER_DOC_DIR}"
-
-# Documentation file
-cat > "${DEPENDER_README}" << 'EOF'
-# Depender - Desktop Application Manager and Creator
-
-![Depender Logo](http://www.w3.org/2000/svg)
-
-Depender is a powerful command-line tool designed for the **Desind OS** ecosystem that enables users to manage desktop applications and convert websites into native desktop applications with ease. It adheres to the MCX maximum standards (response time < 5ms) while providing a seamless user experience.
-
-## ✨ Features
-
-- **Web Application Creation**: Convert any website into a desktop application with automatic metadata extraction
-- **Native Application Management**: List, view information, and manage traditional desktop applications
-- **Automatic Metadata Extraction**: Smartly extracts titles, descriptions, and icons from websites
-- **JSON Output**: Export application lists in JSON format for programmatic use
-- **Web Application Support**: Special handling for web applications with URL tracking
-- **Lightweight & Fast**: Built for performance with response times under 5ms
-- **Seamless Desind Integration**: Works perfectly with Desind's capsule-based UI system
-
-## 📦 Installation
-
-### Manual Installation
-```bash
-# Download the installation script
-wget https://github.com/MdX07r/depender/raw/main/depender-install
-
-# Make it executable
-chmod +x depender-install
-
-# Run as root
-sudo ./depender-install
-```
-
-### AUR (Arch Linux)
-```bash
-yay -S depender
-# OR
-paru -S depender
-```
-
-### Dependencies
-- Python 3.8+
-- BeautifulSoup4 (`python3 -m pip install --user beautifulsoup4`)
-- Requests (`python3 -m pip install --user requests`)
-
-## 🚀 Getting Started
-
-### Basic Usage
-```bash
-# List all applications
-depender list
-
-# List only web applications
-depender list -w
-
-# Create a web application from a URL
-depender create-webapp https://example.com
-
-# Create a native application entry
-depender create-native "My App" "myapp-command"
-
-# View application information
-depender info "Example Website"
-
-# Run an application
-depender run "Example Website"
-
-# Remove an application
-depender remove "Example Website"
-```
-
-## 🌐 Web Application Creation
-
-Depender's most powerful feature is converting websites into desktop applications:
-
-### Basic Web Application
-```bash
-depender create-webapp https://example.com
-```
-
-This command:
-1. Fetches the website content
-2. Extracts title, description, and favicon
-3. Creates a .desktop file using `xdg-open`
-4. Marks it as a web application with `X-WebApp=true`
-5. Stores the original URL in `X-URL`
-
-### Advanced Web Application Options
-```bash
-# Custom name
-depender create-webapp https://example.com -n "My Custom Name"
-
-# Custom categories
-depender create-webapp https://example.com -c "Network;WebBrowser;"
-
-# Custom icon URL
-depender create-webapp https://example.com -i https://example.com/custom-icon.png
-
-# Create with specific browser
-depender create-webapp https://example.com --exec "firefox --private-window %U"
-```
-
-## 🖥️ Native Application Management
-
-### Creating Native Applications
-```bash
-# Basic native application
-depender create-native "VS Code" "code"
-
-# With description and icon
-depender create-native "VS Code" "code" -d "Code editing. Redefined." -i /usr/share/icons/vscode.png
-```
-
-### Managing Applications
-```bash
-# List applications with search
-depender list -s "browser"
-
-# List applications in JSON format
-depender list -j
-
-# View detailed application information
-depender info "Google Chrome"
-
-# Remove an application
-depender remove "Google Chrome"
-```
-
-## ⚙️ Integration with Desind OS
-
-Depender works seamlessly with Desind's unique capsule-based UI:
-
-```bash
-# Create a web app for Desind documentation
-depender create-webapp https://docs.desind.example -n "Desind Docs"
-
-# The new application will automatically appear in ArchStart launcher
-```
-
-### Capsule Integration
-- Web applications appear as capsules in the Desind interface
-- Automatic categorization based on website content
-- Supports Desind's dynamic color engine (Pywal integration)
-- Works with Desind's RTL/LTR language support
-
-## 🔍 Advanced Usage
-
-### Batch Operations
-```bash
-# Create multiple web applications from a list
-cat websites.txt | while read url; do
-  depender create-webapp "$url"
-done
-
-# Export all web applications to JSON
-depender list -w -j > webapps.json
-```
-
-### Programmatic Use
-```bash
-# Get application path for scripting
-APP_PATH=$(depender info "Example" | grep "File Path" | cut -d ':' -f 2 | tr -d ' ')
-xdg-open "$APP_PATH"
-```
-
-### Custom Browser Profiles
-```bash
-# Create web app with custom browser profile
-depender create-webapp https://gmail.com -n "Gmail" \
-  --exec "firefox -P 'Work' --class Gmail --no-remote %U"
-```
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**Website Metadata Not Extracted Properly**
-```bash
-# Manually specify name and icon
-depender create-webapp https://problem-site.com -n "Custom Name" -i https://problem-site.com/custom-icon.png
-```
-
-**Application Not Appearing in Launcher**
-```bash
-# Update desktop database
-update-desktop-database ~/.local/share/applications
-```
-
-**Missing Dependencies**
-```bash
-# Install required Python packages
-python3 -m pip install --user beautifulsoup4 requests
-```
-
-### Debug Mode
-```bash
-# Run with debug output
-DEP_DEBUG=1 depender create-webapp https://example.com
-```
-
-## 🤝 Contributing
-
-We welcome contributions to Depender! Here's how you can help:
-
-1. **Report bugs** by opening an issue on GitHub
-2. **Request features** by creating a feature request issue
-3. **Submit pull requests** for bug fixes or new features
-4. **Improve documentation** by updating the README or adding examples
-
-### Development Setup
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/depender.git
-cd depender
-
-# Install development dependencies
-python3 -m pip install --user -r requirements-dev.txt
-
-# Run tests
-pytest
-```
-
-## 📜 License
-
-Depender is released under the **GNU General Public License v3.0**.
-
-```
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
-
-## 📬 Support
-
-For support and inquiries, please contact us:
-
-- **Email**: mydenglobal@gmail.com
-
----
-
-### Manual Installation
-```bash
-sudo ./depender-install
-EOF
-
-echo "Installation Done! run "depender" command for the list."
