@@ -17,7 +17,7 @@ Depender is a powerful command-line tool designed for the **Desind** ecosystem t
 ### Manual Installation
 ```bash
 # Download the installation script
-wget https://github.com/MdX07r/Depender/raw/main/depender-install
+wget https://github.com/MdX07r/Depender/raw/main/depstall.sh
 
 # Make it executable
 chmod +x depstall.sh
