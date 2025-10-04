@@ -7,10 +7,11 @@ import glob
 import json
 import subprocess
 import re
-import urllib.parse
-import requests
+import urllib.request
+import urllib.error
+from html.parser import HTMLParser
 from pathlib import Path
-from bs4 import BeautifulSoup
+import ssl
 
 class Depender:
     def __init__(self):
@@ -294,40 +295,44 @@ class Depender:
             if not url.startswith(('http://', 'https://')):
                 url = 'https://' + url
             
+            # Create a context that ignores SSL verification for problematic sites
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            
             # Get website information if name/icon not provided
             if not name or not icon:
-                response = requests.get(url, timeout=10)
-                response.raise_for_status()
-                
-                soup = BeautifulSoup(response.text, 'html.parser')
-                
-                # Get title as name if not provided
-                if not name:
-                    title = soup.title.string if soup.title else url.split('//')[1].split('/')[0]
-                    name = title.strip() if title else url
-                
-                # Get icon if not provided
-                if not icon:
-                    # Look for favicon in link tags
-                    favicon = None
-                    for link in soup.find_all('link', rel=re.compile(r'(icon|shortcut icon)', re.I)):
-                        href = link.get('href')
-                        if href:
-                            if href.startswith('http'):
-                                favicon = href
-                            elif href.startswith('//'):
-                                favicon = 'https:' + href
-                            elif href.startswith('/'):
-                                favicon = url.split('://')[0] + '://' + url.split('://')[1].split('/')[0] + href
-                            else:
-                                favicon = url.rstrip('/') + '/' + href
-                            break
+                try:
+                    # Fetch website content using urllib
+                    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                        html_content = response.read().decode('utf-8', errors='ignore')
                     
-                    # If no favicon found, use a default
-                    if favicon:
+                    # Parse HTML to extract title and favicon
+                    parser = SimpleHTMLParser()
+                    parser.feed(html_content)
+                    
+                    # Get title as name if not provided
+                    if not name:
+                        name = parser.title.strip() if parser.title else url.split('//')[1].split('/')[0]
+                    
+                    # Get icon if not provided
+                    if not icon and parser.favicon:
+                        favicon = parser.favicon
+                        # Handle relative URLs
+                        if favicon.startswith('//'):
+                            favicon = 'https:' + favicon
+                        elif favicon.startswith('/'):
+                            favicon = url.split('://')[0] + '://' + url.split('://')[1].split('/')[0] + favicon
+                        elif not favicon.startswith(('http://', 'https://')):
+                            favicon = url.rstrip('/') + '/' + favicon
+                        
                         try:
                             # Download the icon
-                            icon_data = requests.get(favicon, timeout=5).content
+                            req = urllib.request.Request(favicon, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(req, context=ctx, timeout=5) as response:
+                                icon_data = response.read()
+                            
                             icon_path = Path.home() / f".local/share/icons/{name.lower().replace(' ', '-')}.png"
                             icon_path.parent.mkdir(parents=True, exist_ok=True)
                             
@@ -339,6 +344,11 @@ class Depender:
                             icon = 'web-browser'
                     else:
                         icon = 'web-browser'
+                except Exception as e:
+                    print(f"Warning: Failed to fetch website data: {str(e)}", file=sys.stderr)
+                    if not name:
+                        name = url
+                    icon = 'web-browser'
             
             # Generate a safe filename
             filename = f"{name.lower().replace(' ', '-')}.desktop"
@@ -461,6 +471,43 @@ class Depender:
             f.write(f"browser={browser}\n")
         
         return True, f"Default browser set to {browser}"
+
+class SimpleHTMLParser(HTMLParser):
+    """Custom HTML parser to extract title and favicon without external dependencies"""
+    def __init__(self):
+        super().__init__()
+        self.title = ""
+        self.favicon = None
+        self.in_title = False
+        self.in_head = False
+    
+    def handle_starttag(self, tag, attrs):
+        # Track if we're in the head section
+        if tag == "head":
+            self.in_head = True
+        
+        # Extract title
+        if tag == "title" and self.in_head:
+            self.in_title = True
+        
+        # Extract favicon
+        if self.in_head and tag == "link":
+            attrs_dict = dict(attrs)
+            rel = attrs_dict.get("rel", "").lower()
+            
+            # Check for common favicon patterns
+            if "icon" in rel or "shortcut icon" in rel:
+                self.favicon = attrs_dict.get("href")
+    
+    def handle_data(self, data):
+        if self.in_title:
+            self.title += data
+    
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self.in_title = False
+        if tag == "head":
+            self.in_head = False
 
 def main():
     parser = argparse.ArgumentParser(description='Depender - Advanced Application Manager for Desind OS')
