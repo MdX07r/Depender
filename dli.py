@@ -82,7 +82,7 @@ class Depender:
                 'is_webapp': 'X-WebApp' in entry
             }
             
-            # Handle variables in Exec field
+            # Handle variables in Execute field
             if app['exec']:
                 app['exec'] = self.expand_exec_command(app['exec'])
                 
@@ -555,3 +555,4 @@ def main():
 
 if __name__ == "__main__":
     main()s
+
