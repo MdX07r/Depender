@@ -6,7 +6,6 @@ import configparser
 import glob
 import json
 import subprocess
-import requests
 from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urlparse
@@ -555,4 +554,5 @@ def main():
 
 if __name__ == "__main__":
     main()s
+
 
