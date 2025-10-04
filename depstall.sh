@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install Depender
-echo "Installing Depender - Desktop File Management Tool for Daruza"
+echo "Installing Depender - Desktop File Management Tool for Desind"
 
 # Check for root privileges
 if [ "$(id -u)" != "0" ]; then
@@ -372,18 +372,6 @@ Depender is a lightweight and powerful command-line tool designed specifically f
 - **Launch Applications**: Easily launch applications directly from the command line.
 - **JSON Output**: Export application lists in JSON format for easy integration with other tools.
 - **Integration with Desind**: Designed to work seamlessly with the Daruza ecosystem, including ArchStart and other system components.
-
-post_install() {
-    echo "Depender installed successfully!"
-    echo "Use the command 'depender' to view available commands"
-    echo "To view documentation: cat /usr/share/doc/depender/README.md"
-}
-
-post_upgrade() {
-    post_install $1
-}
-
-post_remove() {
-    echo "Depender has been removed from your system"
-}
 EOF
+
+echo "Installation Done! run "depender" command for the list."
