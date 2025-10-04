@@ -371,7 +371,7 @@ Depender is a lightweight and powerful command-line tool designed specifically f
 - **Application Details**: Get detailed information about any application, including its name, description, icon, and execution command.
 - **Launch Applications**: Easily launch applications directly from the command line.
 - **JSON Output**: Export application lists in JSON format for easy integration with other tools.
-- **Integration with Daruza**: Designed to work seamlessly with the Daruza ecosystem, including ArchStart and other system components.
+- **Integration with Desind**: Designed to work seamlessly with the Daruza ecosystem, including ArchStart and other system components.
 
 post_install() {
     echo "Depender installed successfully!"
@@ -386,3 +386,4 @@ post_upgrade() {
 post_remove() {
     echo "Depender has been removed from your system"
 }
+EOF
