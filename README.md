@@ -1,7 +1,5 @@
 # Depender - Desktop Application Manager and Creator
 
-![Depender Logo](http://www.w3.org/2000/svg)
-
 Depender is a powerful command-line tool designed for the **Desind** ecosystem that enables users to manage desktop applications and convert websites into native desktop applications with ease. It adheres to the MCX maximum standards (response time < 5ms) while providing a seamless user experience.
 
 ## ✨ Features
