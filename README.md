@@ -123,16 +123,9 @@ depender info "Google Chrome"
 depender remove "Google Chrome"
 ```
 
-## ⚙️ Integration with Desind OS
+## ⚙️ Integration with Desind
 
 Depender works seamlessly with Desind's unique capsule-based UI:
-
-```bash
-# Create a web app for Desind documentation
-depender create-webapp https://docs.desind.example -n "Desind Docs"
-
-# The new application will automatically appear in ArchStart launcher
-```
 
 ### Capsule Integration
 - Web applications appear as capsules in the Desind interface
@@ -207,7 +200,7 @@ We welcome contributions to Depender! Here's how you can help:
 ### Development Setup
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/depender.git
+git clone https://github.com/MdX07r/depender.git
 cd depender
 
 # Install development dependencies
