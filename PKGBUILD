@@ -1,4 +1,4 @@
-# Maintainer: Your Name <your_email@example.com>
+# Maintainer: Myden <mydenglobal@gmail.com>
 pkgname=depender
 pkgver=1.0.0
 pkgrel=1
@@ -40,5 +40,6 @@ pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
+
 
 
