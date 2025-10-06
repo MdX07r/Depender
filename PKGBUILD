@@ -2,7 +2,7 @@
 pkgname=depender
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="Desktop File Management Tool for Daruza"
+pkgdesc="Desktop File Management Tool for Desind"
 arch=('any')
 url="https://github.com/MdX07r/Depender"
 license=('GPL3')
@@ -12,7 +12,7 @@ install='depender.install'
 
 # Source files
 source=(
-    "depender::https://raw.githubusercontent.com/MdX07r/Depender/main/depender"
+    "depender::https://raw.githubusercontent.com/MdX07r/Depender/main/dli.py"
     "depender.desktop::https://raw.githubusercontent.com/MdX07r/Depender/main/depender.desktop"
     "README.md::https://raw.githubusercontent.com/MdX07r/Depender/main/README.md"
 )
@@ -25,7 +25,7 @@ sha256sums=(
 
 package() {
     # Install the main tool
-    install -Dm755 "$srcdir/depender" "$pkgdir/usr/bin/depender"
+    install -Dm755 "$srcdir/depender" "$pkgdir/usr/bin/dli.py"
     
     # Install the desktop file
     install -Dm644 "$srcdir/depender.desktop" "$pkgdir/usr/share/applications/depender.desktop"
@@ -40,3 +40,4 @@ pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
+
