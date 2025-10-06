@@ -8,7 +8,7 @@ url="https://github.com/MdX07r/Depender"
 license=('GPL3')
 depends=('python')
 makedepends=('git')
-install='depender.install'
+install='depstall.sh'
 
 # Source files
 source=(
@@ -40,4 +40,5 @@ pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
+
 
