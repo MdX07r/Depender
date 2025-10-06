@@ -1,6 +1,6 @@
 # Maintainer: Myden <mydenglobal@gmail.com>
 pkgname=depender
-pkgver=1.0.0
+pkgver=dep-1
 pkgrel=1
 pkgdesc="Desktop File Management Tool for Desind"
 arch=('any')
@@ -40,6 +40,7 @@ pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
+
 
 
 
