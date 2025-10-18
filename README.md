@@ -209,9 +209,9 @@ Depender is released under the **GPLv3 License**. See the [LICENSE](LICENSE) fil
 
 For support or questions, please open an issue on GitHub or contact me directly:
 
-- **GitHub**: [@MdX07r](https://github.com/MdX07r)
+- **GitHub**: [@md7u](https://github.com/md7u) - Depender Creator
 - **Email**: mydenglobal@gmail.com
 
 ---
 
-Made with ❤️ for the Desind OS community. All contributions are welcome!
+Made with ❤️ for the Desind Shells Community. All contributions are welcome!
