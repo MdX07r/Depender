@@ -12,9 +12,9 @@ install='depstall.sh'
 
 # Source files
 source=(
-    "depender::https://raw.githubusercontent.com/MdX07r/Depender/main/dli.py"
-    "depender.desktop::https://raw.githubusercontent.com/MdX07r/Depender/main/depender.desktop"
-    "README.md::https://raw.githubusercontent.com/MdX07r/Depender/main/README.md"
+    "depender::https://raw.githubusercontent.com/md7u/Depender/main/dli.py"
+    "depender.desktop::https://raw.githubusercontent.com/md7u/Depender/main/depender.desktop"
+    "README.md::https://raw.githubusercontent.com/md7u/Depender/main/README.md"
 )
 
 sha256sums=(
@@ -40,7 +40,3 @@ pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
-
-
-
-
