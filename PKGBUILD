@@ -2,9 +2,9 @@
 pkgname=depender
 pkgver=dep-1
 pkgrel=1
-pkgdesc="Desktop File Management Tool for Desind"
+pkgdesc="Desktop File Management Tool for Arch Linux"
 arch=('any')
-url="https://github.com/MdX07r/Depender"
+url="https://github.com/dm7u/Depender"
 license=('GPL3')
 depends=('python')
 makedepends=('git')
@@ -40,3 +40,4 @@ pkgver() {
     cd "$srcdir/$pkgname"
     git describe --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
+
